@@ -188,11 +188,13 @@ for x in range(1, 39):
 
 
 # Calculate 12, 24 and 36 month returns
-df_1526['r12_sum'] = df_1526.iloc[:,1:13].sum(axis=1)
-df_1526['r24_sum'] = df_1526.iloc[:,1:25].sum(axis=1)
-df_1526['r36_sum'] = df_1526.iloc[:,1:37].sum(axis=1)
+df_1526['r12_sum'] = df_1526.iloc[:,2:14].sum(axis=1) * 100
+df_1526['r24_sum'] = df_1526.iloc[:,2:26].sum(axis=1) * 100
+df_1526['r36_sum'] = df_1526.iloc[:,2:38].sum(axis=1) * 100
 
-# Drop Cusip Column
+df_1526['r36_sum'].mean()
+
+# Drop Cusip Column.  Use Name to merge on -- see below
 df_1526.drop('cusip', inplace=True, axis=1)
 
 # Drop r1-r38 columns
@@ -273,26 +275,6 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-# Underpriced Exclude NASDAQ)
-fig, ax = plt.subplots()
-index = np.arange(n_groups)
-rects1 = plt.bar(index, df_under_amex, bar_width,
-    alpha=opacity,
-    color='b',
-    label='AMEX')
-rects2 = plt.bar(index + bar_width, df_under_nyse, bar_width,
-    alpha=opacity,
-    color='g',
-    label='NYSE')
-plt.xlabel('Exchange')
-plt.ylabel('Return')
-plt.title('Underpriced Average Returns by Exchange')
-plt.xticks(index + bar_width, ('D1', 'R12', 'R24', 'R36'))
-plt.legend()
-plt.tight_layout()
-plt.show()
-
-
 # Write data to Output Files using rx_data_step
 from revoscalepy import rx_data_step
 
@@ -301,7 +283,7 @@ rx_data_step(input_data = df,
     output_file = "IPO2609Cleaned.xdf",
     overwrite = True,
     xdf_compression_level = 5)
-    
+
 # Merged ipo1526
 rx_data_step(input_data = df_1526,
     output_file = "IPO1526Merged.xdf",
