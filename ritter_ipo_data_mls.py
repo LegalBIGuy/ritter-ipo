@@ -14,6 +14,7 @@
 from revoscalepy import rx_data_step
 import numpy as np
 import pandas as pd
+import math
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import wget
@@ -89,16 +90,20 @@ df['odate'] = df['odate'].astype("int")
 #   SIC Code
 #     999 represents missing
 df['sic'] = df['sic'].astype("int")
+#     Add 2-digit group code
+df['sic_group'] = df['sic'].apply(lambda x: math.floor(x / 10)).astype("int")
+
 #   Lead Underwriter
 #      0 represents missing
+#      Add group -- see Ritter documentation
 df['uw1'] = df['uw1'].astype("int")
+df['uw1_group'] = df['uw1'].apply(lambda x: math.floor(x / 100) * 100).astype("int")
 #   Other underwriters
 df['uw2'] = df['uw2'].astype("int")
-df['uw2'] = df['uw3'].astype("int")
-df['uw2'] = df['uw4'].astype("int")
-df['uwS'] = df['uwS'].astype("int")
-# Fix typo in uw5 column name
-df = df.rename(columns={'uwS': 'uw5'})
+df['uw2_group'] = df['uw2'].apply(lambda x: math.floor(x / 10) * 10).astype("int")
+df['uw3'] = df['uw3'].astype("int")
+df['uw3_group'] = df['uw3'].apply(lambda x: math.floor(x / 10)).astype("int")
+#   NOTE: uw4 and uwS (should be 5) dropped below.  Just use first three underwriters
 #   Year Organized
 #     99 represents missing
 df['yr'] = df['yr'].astype("int")
@@ -138,7 +143,7 @@ df['of'] = df['of'].astype(float) / 100
 df.isnull().sum()
 
 # Drop columns uncer and gs as well as cusip, zip and uw3,4,5
-df = df.drop(['uncer', 'gs', 'cusip', 'zip', 'uw3', 'uw4', 'uw5'], axis=1)
+df = df.drop(['uncer', 'gs', 'cusip', 'zip', 'uw3', 'uw4', 'uwS'], axis=1)
 
 # Drop rows with missing data
 df = df[df['op'] != 0]
