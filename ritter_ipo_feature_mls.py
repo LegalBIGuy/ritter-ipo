@@ -79,7 +79,7 @@ sel.get_support(indices=True)
 
 
 # Feature Importance
-model = ExtraTreesClassifier()
+model = ExtraTreesClassifier(n_estimators=100)
 model.fit(uni_X, uni_y)
 feat_importances = pd.Series(model.feature_importances_, index=scaled_X.columns)
 feat_importances.nlargest(10).plot(kind='barh')
@@ -113,12 +113,11 @@ for var in cat_vars:
     var_dummies = pd.get_dummies(rfe_X[var], prefix=var)
     rfe_X = rfe_X.join(var_dummies)
 
-
 rfe_X_vars = rfe_X.columns.values.tolist()
 to_keep=[i for i in rfe_X_vars if i not in cat_vars]
 rfe_X = rfe_X[to_keep]
 
-logreg = LogisticRegression()
+logreg = LogisticRegression(solver='liblinear')
 rfe = RFE(logreg, 20)
 # NOTE: This takes several minutes with more than 1000 features
 rfe = rfe.fit(rfe_X, rfe_y.values.ravel())

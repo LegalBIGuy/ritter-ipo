@@ -209,6 +209,12 @@ df_1526['r12_sum'] = df_1526.iloc[:, 2:14].sum(axis=1) * 100
 df_1526['r24_sum'] = df_1526.iloc[:, 2:26].sum(axis=1) * 100
 df_1526['r36_sum'] = df_1526.iloc[:, 2:38].sum(axis=1) * 100
 
+# In Professor Ritter's 1991 paper, The Long-Run Performance of Initial Public Offerings
+#  he indicates that the average period return for these 1526 stocks
+#  in the 3 years after going public is 34.47%
+# However, based on the data in the Excel file, I am getting a higher value (39.52%)
+#  At this point, I can see no cause for the discrepancy
+#  For the purposes of this experiment, I will ignore this discrepancy
 df_1526['r36_sum'].mean()
 
 # Drop r1-r38 columns
