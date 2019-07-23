@@ -14,7 +14,7 @@
 
 import numpy as np
 import pandas as pd
-from revoscalepy import rx_import, rx_dtree
+from revoscalepy import rx_import, rx_dtree, rx_data_step
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -40,6 +40,7 @@ uni_vars.remove('underpriced') # The value we are predicting, so remove from fac
 uni_vars.remove('Name') # Company identifier, not relevant
 uni_vars.remove('perm') # permanent identifier, not relevant
 uni_vars.remove('dt1') # Price after first day trading, unknown at time of prediction
+uni_vars.remove('pr1') # Closing Bid after first day trading, unknown at time of prediction
 uni_vars.remove('d1pctchg') # Price percent change after first day trading, unknown at time of prediction
 uni_vars.remove('ex') # use numeric ex_code
 uni_vars.remove('t') # Use numeric t_code
@@ -102,13 +103,14 @@ rfe_vars.remove('underpriced') # The value we are predicting, so remove from fac
 rfe_vars.remove('Name') # Company identifier, not relevant
 rfe_vars.remove('perm') # permanent identifier, not relevant
 rfe_vars.remove('dt1') # Price after first day trading, unknown at time of prediction
+rfe_vars.remove('pr1') # Closing Bid after first day trading, unknown at time of prediction
 rfe_vars.remove('d1pctchg') # Price percent change after first day trading, unknown at time of prediction
 rfe_vars.remove('ex') # use numeric ex_code
 rfe_vars.remove('t') # Use numeric t_code
 rfe_X = ipo2609Cleaned[rfe_vars]
 rfe_y = ipo2609Cleaned['underpriced']
 
-cat_vars = ['zip3', 'sic', 'sic_group', 'uw1', 'uw1_group', 'uw2', 'uw2_group', 'yr', 'sectype'] # , 't', 'ex', 'odate', 
+cat_vars = ['zip3', 'sic', 'sic_group', 'uw1', 'uw1_group', 'uw2', 'uw2_group', 'yr', 'sectype', 't_code', 'ex_code']
 for var in cat_vars:
     var_dummies = pd.get_dummies(rfe_X[var], prefix=var)
     rfe_X = rfe_X.join(var_dummies)
@@ -117,6 +119,7 @@ rfe_X_vars = rfe_X.columns.values.tolist()
 to_keep=[i for i in rfe_X_vars if i not in cat_vars]
 rfe_X = rfe_X[to_keep]
 
+# Perform RFE on categorical features
 logreg = LogisticRegression(solver='liblinear')
 rfe = RFE(logreg, 20)
 # NOTE: This takes several minutes with more than 1000 features
@@ -124,9 +127,9 @@ rfe = rfe.fit(rfe_X, rfe_y.values.ravel())
 
 rfe_ranked_features = sorted(zip(map(lambda x: round(x, 4), rfe.ranking_), rfe_X))
 # Take top 25 features
-rfe_features = [t[1] for t in rfe_ranked_features[:50]]
+#rfe_features = [t[1] for t in rfe_ranked_features[:50]]
 # Take features with rank of 5 or lower
-#rfe_features = [t[1] for t in rfe_ranked_features if t[0] <= 5]
+rfe_features = [t[1] for t in rfe_ranked_features if t[0] <= 1]
 print(rfe_features)
 
 
@@ -140,3 +143,17 @@ plt.figure(figsize=(20,20))
 # Plot heat map
 g=sns.heatmap(cor_X[top_corr_features].corr(),annot=True,cmap="RdYlGn")
 plt.show()
+
+# Specify final vars to keep for training a model, including the label column
+model_vars = ['odate', 'd', 'audit', 'op', 'min', 'sel', 'uses',
+              'ex_code_1', 'ex_code_4', 'sectype_10', 'sectype_99',
+              'sic_357', 'sic_382', 'sic_602', 'sic_671', 'sic_group_13', 'sic_group_35', 't_code_1',
+              'uw1_109', 'uw1_204', 'uw1_303', 'uw1_328', 'uw1_332', 'uw1_505', 'uw1_group_200', 'uw1_group_300',
+              'uw2_group_120', 'uw1_group_600', 'uw2_group_810', 'uw2_group_0', 'uw3_group']
+model_df = rfe_X[model_vars]
+model_df = model_df.join(uni_y)
+
+rx_data_step(input_data=model_df,
+             output_file="IPO2609FeatureEngineering.xdf",
+             overwrite=True,
+             xdf_compression_level=5)
