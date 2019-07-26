@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import revoscalepy as rv
 from revoscalepy import rx_import
-from revoscalepy import rx_logit
+from revoscalepy import rx_logit, rx_btrees
 import microsoftml as ml
 from microsoftml import FastForest, FastLinear, FastTrees, LogisticRegression, NeuralNetwork
 from microsoftml import rx_fast_forest, rx_fast_linear, rx_fast_trees, rx_logistic_regression, rx_neural_network
@@ -30,7 +30,7 @@ from sklearn.metrics import auc
 
 # Read Cleaned Ipo2609 XDF file
 IPO2609FE = rx_import("IPO2609FeatureEngineering.xdf")
-ipo_train, ipo_test = train_test_split(IPO2609FE)
+ipo_train, ipo_test = train_test_split(IPO2609FE, random_state=42)
 
 # Columns for training (X), remove label (y)
 features = IPO2609FE.columns.drop(["underpriced"])
@@ -59,8 +59,38 @@ fpr, tpr, thresholds = roc_curve(ipo_test["underpriced"] , probArray)
 aucResult = auc(fpr, tpr)
 print ("rx-logit AUC: " + str(aucResult))
 
+# Plot ROC
+plt.figure()
+lw = 2
+plt.plot(fpr, tpr, color='darkorange', lw=lw, label='ROC Curve')
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title('ROC')
+plt.legend(loc="lower right")
+plt.show()
 
-# MicrosoftML Linear Regression
+# Revoscalepy rx_btrees
+seed = 0
+n_trees = 50
+interaction_depth = 4
+n_min_obs_in_node = 1
+shrinkage = 0.1
+bag_fraction = 0.5
+distribution = "bernoulli"
+
+rx_btrees_model = rx_btrees(formula=formula, data=ipo_train, loss_function=distribution, n_tree=n_trees, learning_rate=shrinkage,
+                sample_rate=bag_fraction, max_depth=interaction_depth, min_bucket=n_min_obs_in_node, seed=seed,
+                replace=False, max_num_bins=200)
+probArray = rv.rx_predict(rx_btrees_model, data=ipo_test)
+fpr, tpr, thresholds = roc_curve(ipo_test["underpriced"] , probArray)
+aucResult = auc(fpr, tpr)
+print ("rx-btrees AUC: " + str(aucResult))
+
+
+# MicrosoftML Logistic Regression
 ml_lreg_model = rx_logistic_regression(formula=formula, data=ipo_train)
 ml_lreg_score = ml.rx_predict(ml_lreg_model, data=ipo_test,
                      extra_vars_to_write=["underpriced"])
@@ -69,7 +99,7 @@ prob_pred = [ml_lreg_score.loc[i, "Probability"] if ml_lreg_score.loc[i, "Predic
 good = ml_lreg_score["PredictedLabel"].as_matrix() == (ipo_test["underpriced"] == 1).as_matrix()
 fpr, tpr, th = roc_curve(good.ravel(), prob_pred)
 aucResult = auc(fpr, tpr)
-print ("ml-linear-reg AUC: " + str(aucResult))
+print ("ml-logistic-reg AUC: " + str(aucResult))
 
 
 # Microsoftml Fast Forest
@@ -83,7 +113,7 @@ print ("ml-ff AUC: " + str(aucResult))
 # Fast Forest Tune Hyperparameters
 
 # Split training data into A / B
-trainA, trainB = train_test_split(ipo_train)
+trainA, trainB = train_test_split(ipo_train, random_state=42)
 
 # Function to train and test on A / B.
 def train_test_hyperparameter(trainA, trainB, **hyper):
@@ -142,24 +172,11 @@ print ("ml-ff-hyper AUC: " + str(aucResult))
 
 # Ensemble Model
 trainers = [FastTrees(), FastForest(), FastLinear(), NeuralNetwork()]
-ml_ens_model = rx_ensemble(formula=formula, data=ipo_train, trainers=trainers, model_count=4, random_seed=42)
+ml_ens_model = rx_ensemble(formula=formula, data=ipo_train, trainers=trainers, random_seed=42)
 ml_ens_pred = ml.rx_predict(ml_ens_model, data=ipo_test, extra_vars_to_write="underpriced")
 fpr, tpr, th = roc_curve(ml_ens_pred["underpriced"], ml_ens_pred["Probability"])
 aucResult = auc(fpr, tpr)
 print ("ml-ensemble AUC: " + str(aucResult))
-
-# Plot ROC
-plt.figure()
-lw = 2
-plt.plot(fpr, tpr, color='darkorange', lw=lw, label='ROC Curve')
-plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel("False Positive Rate")
-plt.ylabel("True Positive Rate")
-plt.title('ROC')
-plt.legend(loc="lower right")
-plt.show()
 
 # Ensemble Precision-Recall
 ml_ens_prfs = precision_recall_fscore_support(ipo_test["underpriced"], ml_ens_pred["PredictedLabel"], average='micro')
