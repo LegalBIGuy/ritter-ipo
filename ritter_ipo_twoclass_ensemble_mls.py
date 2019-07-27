@@ -151,10 +151,13 @@ rfc_random = RandomizedSearchCV(estimator = rfc, param_distributions = random_gr
 rfc_random.fit(X, y)
 
 # Review best hyperparameters
+# {'max_depth': None, 'n_estimators': 1118, 'min_samples_leaf': 4, 'min_samples_split': 10, 'max_features': 'sqrt', 'bootstrap': False}
 rfc_random.best_params_
 
 # Fit a model with the best hyperparameters
-rfc_best = RandomForestClassifier(n_estimators = 1600, min_samples_leaf = 1, min_samples_split = 10, max_features = 'sqrt', random_state = 42)
+rfc_best = RandomForestClassifier(n_estimators=1118, max_depth = None,
+                                  min_samples_leaf=4, min_samples_split=10, max_features='sqrt',
+                                  bootstrap=False, random_state=42)
 sk_rfc_best_model = rfc_best.fit(X, y)
 probList = []
 probList = sk_rfc_best_model.predict_proba(ipo_test[features.values.tolist()])[:,1]

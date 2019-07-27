@@ -147,7 +147,7 @@ rfe = RFE(logreg, 20)
 rfe = rfe.fit(rfe_X, rfe_y.values.ravel())
 
 rfe_ranked_features = sorted(zip(map(lambda x: round(x, 4), rfe.ranking_), rfe_X))
-# Take top 25 features
+# Take top 50 features
 rfe_features = [t[1] for t in rfe_ranked_features[:50]]
 # Take features with rank of 10 or lower
 #rfe_features = [t[1] for t in rfe_ranked_features if t[0] <= 10]
