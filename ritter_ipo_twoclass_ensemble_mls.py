@@ -20,8 +20,9 @@ from microsoftml import FastForest, FastLinear, FastTrees, LogisticRegression, N
 from microsoftml import rx_fast_forest, rx_fast_linear, rx_fast_trees, rx_logistic_regression, rx_neural_network
 from microsoftml import rx_ensemble, Ensemble, EnsembleControl
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve
 from sklearn.metrics import precision_recall_fscore_support
@@ -45,7 +46,7 @@ probList = sk_log_model.predict_proba(ipo_test[features.values.tolist()])[:,1]
 probArray = np.asarray(probList)
 fpr, tpr, thresholds = roc_curve(ipo_test["underpriced"] , probArray)
 aucResult = auc(fpr, tpr)
-print ("scikit AUC: " + str(aucResult))
+print ("scikit logistic AUC: " + str(aucResult))
 
 # Define Formula for all Microsoft algorithms
 formula = "underpriced ~ " + "+".join(features)
@@ -80,7 +81,6 @@ n_min_obs_in_node = 1
 shrinkage = 0.1
 bag_fraction = 0.5
 distribution = "bernoulli"
-
 rx_btrees_model = rx_btrees(formula=formula, data=ipo_train, loss_function=distribution, n_tree=n_trees, learning_rate=shrinkage,
                 sample_rate=bag_fraction, max_depth=interaction_depth, min_bucket=n_min_obs_in_node, seed=seed,
                 replace=False, max_num_bins=200)
@@ -110,64 +110,58 @@ aucResult = auc(fpr, tpr)
 print ("ml-ff AUC: " + str(aucResult))
 
 
-# Fast Forest Tune Hyperparameters
-
-# Split training data into A / B
-trainA, trainB = train_test_split(ipo_train, random_state=42)
-
-# Function to train and test on A / B.
-def train_test_hyperparameter(trainA, trainB, **hyper):
-    model = rx_fast_trees(formula=formula, data=trainA, verbose=0, **hyper)
-    pred = ml.rx_predict(model, trainB, extra_vars_to_write=["underpriced"])
-    conf = confusion_matrix(pred["underpriced"], pred["PredictedLabel"])
-    return (conf[0,0] + conf[1,1]) / conf.sum()
-
-
-# num_leaves hyperparameter
-hyper_values = [5, 10, 15, 20, 25, 30, 35, 40, 50, 100, 200]
-perfs = []
-for val in hyper_values:
-    acc = train_test_hyperparameter(trainA, trainB, num_leaves=val)
-    perfs.append(acc)
-    print("-- Training with hyper={0} performance={1}".format(val, acc))
-
-
-# Plot num_leaves hyperparameter results
-fig, ax = plt.subplots(1, 1)
-ax.plot(hyper_values, perfs, "o-")
-ax.set_xlabel("num_leaves")
-ax.set_ylabel("% correctly classified")
-plt.show()
-
-# Choose best (max) result for num_leaves
-leaves_results = max(zip(perfs, hyper_values))
-print("max={0}".format(leaves_results))
-
-# Tune num_trees
-hyper_values = [25, 50, 75, 100, 125, 150, 175, 200, 300, 400, 500]
-perfs = []
-for val in hyper_values:
-    acc = train_test_hyperparameter(trainA, trainB, num_leaves=leaves_results[1], num_trees=val)
-    perfs.append(acc)
-    print("-- Training with hyper={0} performance={1}".format(val, acc))
-
-
-# Plot num_trees hyperparameter results
-fig, ax = plt.subplots(1, 1)
-ax.plot(hyper_values, perfs, "o-")
-ax.set_xlabel("num_trees")
-ax.set_ylabel("% correctly classified")
-plt.show()
-
-# Choose best (max) result for num_trees
-trees_results = max(zip(perfs, hyper_values))
-print("max={0}".format(trees_results))
-
-ml_ff_hyper_model = rx_fast_trees(formula=formula, data=ipo_train, num_leaves=leaves_results[1], num_trees=trees_results[1])
-ml_ff_hyper_pred = ml.rx_predict(ml_ff_hyper_model, data=ipo_test, extra_vars_to_write=["underpriced"])
-fpr, tpr, thresholds = roc_curve(ipo_test["underpriced"], ml_ff_hyper_pred["PredictedLabel"])
+# Scikit Random Forest
+rfc = RandomForestClassifier(random_state = 42)
+sk_rf_model = rfc.fit(X, y)
+probList = []
+probList = sk_rf_model.predict_proba(ipo_test[features.values.tolist()])[:,1]
+probArray = np.asarray(probList)
+fpr, tpr, thresholds = roc_curve(ipo_test["underpriced"] , probArray)
 aucResult = auc(fpr, tpr)
-print ("ml-ff-hyper AUC: " + str(aucResult))
+print ("scikit Random Forest Classifier AUC: " + str(aucResult))
+
+
+# Scikit Random Forest Tune Hyperparameters
+
+# Number of trees in random forest
+n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 50)]
+# Number of features to consider at every split
+max_features = ['auto', 'sqrt']
+# Maximum number of levels in tree
+max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+max_depth.append(None)
+# Minimum number of samples required to split a node
+min_samples_split = [2, 5, 10]
+# Minimum number of samples required at each leaf node
+min_samples_leaf = [1, 2, 4]
+# Method of selecting samples for training each tree
+bootstrap = [True, False]# Create the random grid
+random_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth,
+               'min_samples_split': min_samples_split,
+               'min_samples_leaf': min_samples_leaf,
+               'bootstrap': bootstrap}
+
+# Use the random grid to search for best hyperparameters
+
+# Random search of parameters, using 3 cross validation folds
+rfc_random = RandomizedSearchCV(estimator = rfc, param_distributions = random_grid, n_iter = 10, cv = 3, verbose=2, n_jobs = -1, random_state=42)
+# Fit the random search model
+rfc_random.fit(X, y)
+
+# Review best hyperparameters
+rfc_random.best_params_
+
+# Fit a model with the best hyperparameters
+rfc_best = RandomForestClassifier(n_estimators = 1600, min_samples_leaf = 1, min_samples_split = 10, max_features = 'sqrt', random_state = 42)
+sk_rfc_best_model = rfc_best.fit(X, y)
+probList = []
+probList = sk_rfc_best_model.predict_proba(ipo_test[features.values.tolist()])[:,1]
+probArray = np.asarray(probList)
+fpr, tpr, thresholds = roc_curve(ipo_test["underpriced"] , probArray)
+aucResult = auc(fpr, tpr)
+print ("scikit Random Forest Classifier Tuned Hyperparameters AUC: " + str(aucResult))
 
 
 # Ensemble Model
@@ -182,7 +176,7 @@ print ("ml-ensemble AUC: " + str(aucResult))
 ml_ens_prfs = precision_recall_fscore_support(ipo_test["underpriced"], ml_ens_pred["PredictedLabel"], average='micro')
 print ("ml-ff Precision, Recall, FScore: " + str(ml_ens_prfs))
 precision, recall, thresholds = precision_recall_curve(ipo_test["underpriced"], ml_ens_pred["PredictedLabel"])
-# Plot Fast Forest Precision-Recall curve
+# Plot Precision-Recall curve
 plt.plot(recall, precision)
 plt.title('Ensemble Precision-Recall curve')
 plt.legend(loc='lower right', fontsize='small')
