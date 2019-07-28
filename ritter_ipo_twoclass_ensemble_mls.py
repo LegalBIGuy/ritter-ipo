@@ -1,6 +1,6 @@
 # Ritter IPO Analysis
 #   Step 3: Train and evaluate different binary classifcation models
-#           Finally, use Ensemble Model (rx_ensemble) for best results
+#           including microsoftml Ensemble Model (rx_ensemble)
 #
 #   This script uses the version of Python bundled with the
 #     Microsoft Machine Learning Server version 9.3
