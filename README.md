@@ -28,11 +28,18 @@ The python files correspond to different parts of the experiment, as detailed in
 Import, clean, transform and visualize data.
 File: ritter_ipo_data_mls.py
 The mls suffix indicates the use of Microsoft Machine Learning Server classes.  However, these references can easily be removed.
+See the following blog post for a detailed description of this script:  [Ritter IPO - Part 1](https://legalbiguy.com/2019/07/08/legal-machine-learning-experiment-part-1/)
 
 ### Part 2: Feature Engineering
 Use statistical tests, recursive feature elimination, indicator values, and other techniques to select features.
 File: ritter_ipo_feature_mls.py
 The mls suffix indicates the use of Microsoft Machine Learning Server classes.  However, these references can easily be removed.
+See the following blog post for a detailed description of this script:  [Ritter IPO - Part 2](https://legalbiguy.com/2019/07/19/legal-machine-learning-experiment-part-2/)
 
-### Part 3: Training and Evaluating a Model
-In process
+### Part 3: Training and Evaluating a Binary Classification Model
+Use logistic regression, decision trees, and random forests to train and evaluate a number of binary classification models.  Learn how to tune model hyperparameters using cross-validation and how to train an ensemble model.
+File: ritter_ipo_twoclass_ensemble_mls.py
+See the following blog post for a detailed description of this script:  [Ritter IPO - Part 3](https://legalbiguy.com/2019/07/28/legal-machine-learning-experiment-part-3-training-and-evaluating-a-model/)
+
+### Part 4: Implementing the End-to-End Experiment in SQL Server
+In process.
