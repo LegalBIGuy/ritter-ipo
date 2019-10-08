@@ -21,8 +21,7 @@ class NeuralNetwork:
     def sigmoid(self, Z):
         return 1/(1+np.exp(-Z))
 
-    def sigmoid_backward(self, dA, cache):
-        Z = cache
+    def sigmoid_backward(self, dA, Z):
         s = 1/(1+np.exp(-Z))
         dZ = dA * s * (1-s)
         return dZ
@@ -30,8 +29,7 @@ class NeuralNetwork:
     def relu(self, Z):
         return np.maximum(0,Z)
 
-    def relu_backward(self, dA, cache):
-        Z = cache
+    def relu_backward(self, dA, Z):
         dZ = np.array(dA, copy=True)
         # When z <= 0, set dz to 0 as well. 
         dZ[Z <= 0] = 0
@@ -223,8 +221,8 @@ if __name__ == "__main__":
     p = nn.predict(test_x, test_y)
         
     # Train / Predict with Momentum
-    nn = NeuralNetwork(ipo_layer_dims, 0.05)
-    nn.train(train_x, train_y, True, 5000)
+    nn = NeuralNetwork(ipo_layer_dims, 0.03)
+    nn.train(train_x, train_y, True, 7500)
     nn.plot_costs()
     p = nn.predict(test_x, test_y)
 

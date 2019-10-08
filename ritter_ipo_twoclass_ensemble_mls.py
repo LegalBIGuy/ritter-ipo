@@ -143,8 +143,6 @@ random_grid = {'n_estimators': n_estimators,
                'min_samples_leaf': min_samples_leaf,
                'bootstrap': bootstrap}
 
-# Use the random grid to search for best hyperparameters
-
 # Random search of parameters, using 3 cross validation folds
 rfc_random = RandomizedSearchCV(estimator = rfc, param_distributions = random_grid, n_iter = 10, cv = 3, verbose=2, n_jobs = -1, random_state=42)
 # Fit the random search model
